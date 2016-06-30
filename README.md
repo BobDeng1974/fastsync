@@ -1,11 +1,14 @@
 # fastsync
-    fast (real time) synchronize bulky files between servers.
+    Fast (real time) synchronize bulky log files between servers.
+
+    This project is written by pure C so as to archieve the highest
+        performance meanwhile the shortest latency time.
 
 # project home dir
     ${fastsync}
 
 # prepare for build
-    Below packages shuld be installed beforw build fastsync:
+    Below packages shuld be installed prior to build fastsync:
 
     # mxml-2.9
         $ cd ${fastsync}/prepare
