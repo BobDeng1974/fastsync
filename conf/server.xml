@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fastsync-server xmlns="http://www.pepstack.com" ver="0.0.1">
+  <authentication>
+    <magic>C72A</magic>
+    <ssl enable="false">
+      <pubkey/>
+      <privkey/>
+    </ssl>
+  </authentication>
+  <stash>
+    <pathprefix descr="Specify server path to store files.">/var/log/fastsync-stash</pathprefix>
+    <entrydb backend="sqlite3">
+      <maxretry descr="Max count of retries for writting into entrydb.">3</maxretry>
+      <interval descr="Specify every interval seconds to write entrydb.">10</interval>
+    </entrydb>
+  </stash>
+  <connection timeunit="second" sizeunit="byte" descr="TCP connection settings">
+    <iptable descr="Specify which clients can establish connection with this server.">
+      <whitelist enable="false">127.0.0.1,192.168.1.2</whitelist>
+      <blacklist enable="false"></blacklist>
+    </iptable>
+    <port descr="The port fastsync server is listening on.">4916</port>
+    <maxclients descr="Maximum concurrent clients allowed.">default</maxclients>
+    <bufsize descr="Buffer size should not be changed.">8192</bufsize>
+    <timeout descr="TCP connection timeout">6</timeout>
+    <keepinterval>6</keepinterval>
+    <keepidle>30</keepidle>
+    <keepcount>3</keepcount>
+  </connection>
+  <autoupdate enable="true" descr="Config for client auto updating.">
+    <clientpkg>fastsync-client-0.0.1.tar.gz</clientpkg>
+  </autoupdate>
+</fastsync-server>

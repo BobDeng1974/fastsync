@@ -1,0 +1,10 @@
+# LIST OF ALL SOURCE FILES USED BY FASTSYNC
+#
+src:
+    server:
+    client:
+    common:
+
+conf:
+    server.xml
+    client.xml

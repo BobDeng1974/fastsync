@@ -1,0 +1,13 @@
+2016-06-30
+===================
+    1) create fastsync project: ${fastsync}
+    2) add mxml-2.9 opensource
+    3) create server.xml in conf
+
+    install mxml-2.9:
+        # cd ${fastsync}/prepare
+        # tar -zxf mxml-2.9.tgz
+        # cd mxml-2.9/
+        # ./configure
+        # make
+        # sudo make install
