@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE log4c SYSTEM "">
+<log4c version="1.2.4">
+    <!--
+        **** README FIRST BEFORE USING PLEASE ****
+        Author: master@pepstack.com
+        Date: 2016-07-01
+
+        1) source code from: http://log4c.sourceforge.net/
+        2) log4c searches the following files to load its configuration:
+            ${LOG4C_RCPATH}/log4crc
+            ${HOME}/.log4crc
+            ./log4crc
+        3) category priority should take from below levels:
+            fatal
+            error - used in stable release stage
+            warn
+            info - used in release stage
+            debug - used in beta test
+            trace - used only in devel
+			unknown - show all details
+    -->
+
+    <config>
+        <bufsize>0</bufsize>
+        <debug level="0"/>
+        <nocleanup>0</nocleanup>
+    </config>
+
+    <!-- fastsync-client category -->
+    <category
+        name="fastsync-client"
+        priority="trace"
+        appender="fastsync-client-appender" />
+
+    <appender
+        name="fastsync-client-appender"
+        type="rollingfile"
+        logdir="/var/log/fastsync-client/"
+        prefix="client.log"
+        layout="dated_local"
+        rollingpolicy="fastsync-client-policy" />
+
+    <rollingpolicy
+        name="fastsync-client-policy"
+        type="sizewin"
+        maxsize="1048576"
+        maxnum="10" />
+
+    <!-- fastsync-server category -->
+    <category
+        name="fastsync-server"
+        priority="trace"
+        appender="fastsync-server-appender" />
+
+    <appender
+        name="fastsync-server-appender"
+        type="rollingfile"
+        logdir="/tmp/"
+        prefix="server.log"
+        layout="dated_local"
+        rollingpolicy="fastsync-server-policy" />
+
+    <rollingpolicy
+        name="fastsync-server-policy"
+        type="sizewin"
+        maxsize="1048576"
+        maxnum="10" />
+
+    <!-- root category -->
+    <category name="root" priority="notice"/>
+
+    <!-- default appenders -->
+    <appender name="stdout" type="stream" layout="basic"/>
+    <appender name="stderr" type="stream" layout="basic"/>
+    <appender name="syslog" type="syslog" layout="basic"/>
+
+    <!-- default layouts -->
+    <layout name="basic" type="basic"/>
+    <layout name="dated" type="dated"/>
+    <layout name="dated_local" type="dated_local"/>
+</log4c>
