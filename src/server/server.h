@@ -9,6 +9,7 @@
 
 #define SERVER_APP_NAME  "fastsync-server"
 
+#define LOGGER_COLOR_OUTPUT
 #define LOGGER_CATEGORY_NAME  SERVER_APP_NAME
 #include "../logger.h"
 
@@ -19,6 +20,10 @@
 #define MAX_FILENAME_LEN 255
 #endif
 
+#define SUCCESS     0
+#define ERROR     (-1)
+
+#include "server_conf.h"
 
 
 

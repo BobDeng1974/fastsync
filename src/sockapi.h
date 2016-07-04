@@ -41,11 +41,11 @@
  * type definitions
  */
 #ifndef SOCKET
-    typedef int SOCKET;
+typedef int SOCKET;
 #endif
 
 #ifndef ERROR_SOCKET
-#   define ERROR_SOCKET (-1)
+#define ERROR_SOCKET (-1)
 #endif
 
 #define SUCCESS  0

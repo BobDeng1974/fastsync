@@ -47,7 +47,7 @@ check: all
 install:
 	install -d $(prefix)/$(package)/conf
 	install -m 0755 $(binfilename) $(prefix)/$(package)/$(binfilename)-$(version)
-	install -m 0755 ../../conf/server.cfg $(prefix)/$(package)/conf
+	install -m 0755 ../../conf/server.xml $(prefix)/$(package)/conf
 	install -m 0755 ../../conf/log4crc $(prefix)/$(package)/conf
 	ln -s -f $(prefix)/$(package)/$(binfilename)-$(version) $(prefix)/$(package)/$(binfilename)
 

@@ -2,7 +2,7 @@
 <fastsync-server xmlns="http://www.pepstack.com" ver="0.0.1">
   <authentication>
     <magic>C72A</magic>
-    <ssl enable="false">
+    <ssl enabled="no">
       <pubkey/>
       <privkey/>
     </ssl>
@@ -16,8 +16,8 @@
   </stash>
   <connection timeunit="second" sizeunit="byte" descr="TCP connection settings">
     <iptable descr="Specify which clients can establish connection with this server.">
-      <whitelist enable="false">127.0.0.1,192.168.1.2</whitelist>
-      <blacklist enable="false"></blacklist>
+      <whitelist enabled="no">127.0.0.1,192.168.1.2</whitelist>
+      <blacklist enabled="no"></blacklist>
     </iptable>
     <port descr="The port fastsync server is listening on.">4916</port>
     <maxclients descr="Maximum concurrent clients allowed.">default</maxclients>
@@ -26,8 +26,9 @@
     <keepinterval>6</keepinterval>
     <keepidle>30</keepidle>
     <keepcount>3</keepcount>
+    <nodelay descr="yes[yes|no]: time-sensitive transmissions typically use TCP_NODELAY to bypass the Nagle delay.">yes</nodelay>
   </connection>
-  <autoupdate enable="true" descr="Config for client auto updating.">
+  <autoupdate enabled="yes" descr="Config for client auto updating.">
     <clientpkg>fastsync-client-0.0.1.tar.gz</clientpkg>
   </autoupdate>
 </fastsync-server>

@@ -3,7 +3,7 @@
 *   common linux heads
 *
 * Init Created: 2014-08-01
-* Last Updated: 2016-07-01
+* Last Updated: 2016-07-04
 */
 #ifndef HEADS_H_INCLUDED
 #define HEADS_H_INCLUDED
@@ -19,33 +19,34 @@
 #include <stdlib.h>
 #include <jemalloc/jemalloc.h>
 
-#include <unistd.h> /* close */
-#include <fcntl.h>  /* open */
-#include <errno.h>  /* errno */
+#include <unistd.h>          /* close */
+#include <fcntl.h>           /* open */
+#include <errno.h>           /* errno */
 #include <signal.h>
 
-#include <pthread.h>  /* link: -pthread */
+#include <pthread.h>         /* link: -pthread */
 #include <sys/types.h>
+#include <sys/wait.h>        /* waitpid */
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/time.h>
-#include <sys/sendfile.h> /* sendfile */
-#include <sys/ioctl.h>    /* ioctl, FIONREAD */
+#include <sys/sendfile.h>    /* sendfile */
+#include <sys/ioctl.h>       /* ioctl, FIONREAD */
 
-#include <dirent.h>       /* open, opendir, closedir, rewinddir, seekdir, telldir, scandir */
+#include <dirent.h>          /* open, opendir, closedir, rewinddir, seekdir, telldir, scandir */
 
 #include <time.h>
 
-#include <netinet/in.h>  /* sockaddr_in */
+#include <netinet/in.h>      /* sockaddr_in */
 #include <netinet/tcp.h>
 
-#include <arpa/inet.h>   /* inet_addr */
+#include <arpa/inet.h>       /* inet_addr */
 #include <netdb.h>
 #include <semaphore.h>
 #include <stdarg.h>
 
-#include <getopt.h>  /* getopt_long */
+#include <getopt.h>          /* getopt_long */
 #include <regex.h>
 
 /* sqlite3 should be installed first */
@@ -192,5 +193,29 @@ static int list_pid (int pid, void * arg)
 
     return 1;
 }
+
+
+
+/* get proc abs path */
+static const char* getpwd (char *path, int size)
+{
+    int len = readlink("/proc/self/exe", path, size);
+    while (len != 0 && path[len] != '/') {
+        path[len--] = 0;
+    }
+    return path;
+}
+
+
+static int check_file_error (const char * file)
+{
+    if (0 == access(file, R_OK)) {
+        return 0;
+    } else {
+        perror(file);
+        return -1;
+    }
+}
+
 
 #endif /* HEADS_H_INCLUDED */

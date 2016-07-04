@@ -53,10 +53,15 @@
         priority="trace"
         appender="fastsync-server-appender" />
 
+    <!--
+      MUST MAKE SURE:
+        $ mkdir /var/log/fastsync-server
+        $ sudo chown user:user /var/log/fastsync-server
+    -->
     <appender
         name="fastsync-server-appender"
         type="rollingfile"
-        logdir="/tmp/"
+        logdir="/var/log/fastsync-server"
         prefix="server.log"
         layout="dated_local"
         rollingpolicy="fastsync-server-policy" />
