@@ -28,11 +28,15 @@ all: $(package)
 
 $(package): $(bintarget)
 
-$(bintarget): server.c session.o
+$(bintarget): server.c server_conf.o session.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) -DCFGDIR="\"$(sysconfdir)\"" \
-    ./session.o \
+	./server_conf.o \
+	./session.o \
 	-o $@ server.c \
 	$(LDFLAGS)
+
+server_conf.o: server_conf.c
+	$(CC) $(CFLAGS) -c server_conf.c -o $@
 
 session.o: session.c
 	$(CC) $(CFLAGS) -c session.c -o $@

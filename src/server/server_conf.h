@@ -7,7 +7,11 @@
 #ifndef SERVER_CONF_H_INCLUDED
 #define SERVER_CONF_H_INCLUDED
 
-#include "../mem.h"
+#include "../xmlconf.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 
 /**
@@ -16,12 +20,12 @@
 */
 typedef struct server_conf_t
 {
-    uint32_t version;
+    char ver[10];
 
     /**
     * authentication
     */
-    char magic[6];
+    char magic[FSYNC_MAGIC_LEN + 1];
     int ssl_enabled;
     char pubkey[1];
     char privkey[1];
@@ -29,10 +33,8 @@ typedef struct server_conf_t
     /**
     * stash
     */
-    char pathprefix[1];
-
-    int entrydb_backend;
-
+    char pathprefix[FSYNC_PATHPREFIX_LEN + 1];
+    int backend;
     union {
         /* backend: sqlite3 */
         struct {
@@ -45,8 +47,10 @@ typedef struct server_conf_t
     * tcp connection
     */
     int backlog;
-    char iptable_whitelist[1];
-    char iptable_blacklist[1];
+
+    char *iptable_whitelist;
+    char *iptable_blacklist;
+
     unsigned short port;
     int maxclients;
     int bufsize;
@@ -59,23 +63,20 @@ typedef struct server_conf_t
     /**
     *  autoupdate
     */
-    int enable;
-    char clientpkg[1];
+    int autoupdate;
+    char clientpkg_md5sum[FSYNC_MD5SUM_LEN + 1];
+    char clientpkg[FSYNC_PKGNAME_LEN + 1];
 } server_conf_t;
 
 
-server_conf_t * server_conf_create(const char * cfgfile)
-{
-    server_conf_t * p;
-    p = mem_alloc(1, sizeof(server_conf_t));
-    return p;
+extern int server_conf_create(const char * cfgfile, server_conf_t **ppOut);
+
+extern void server_conf_free (server_conf_t ** srvconf);
+
+extern void server_conf_print (server_conf_t * srvconf);
+
+#if defined(__cplusplus)
 }
-
-
-void server_conf_free (server_conf_t ** srvconf)
-{
-    mem_free((void**) srvconf);
-}
-
+#endif
 
 #endif /* SERVER_CONF_H_INCLUDED */

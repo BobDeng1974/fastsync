@@ -335,7 +335,13 @@ int main(int argc, char ** argv)
      */
     signal(SIGPIPE, SIG_IGN);
 
-    server = server_conf_create(cfgfile);
+    ret = server_conf_create(cfgfile, &server);
+    if (ret != 0) {
+        LOGGER_FATAL("server_conf_create() failed: %d\n", ret);
+        goto APP_EXIT_ERROR;
+    }
+
+    server_conf_print(server);
 
     /* create socket for incoming connections */
     listenfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
