@@ -193,7 +193,7 @@ int main(int argc, char ** argv)
     void sig_term(int);
 
     /* child process counter */
-    int counter = 0;
+    int num_childs = 0;
 
     server_conf_t * server = 0;
 
@@ -202,6 +202,7 @@ int main(int argc, char ** argv)
     char log4crc[MAX_FILENAME_LEN + 1] = {0};
 
     int listenfd = ERROR_SOCKET;
+
     int sessionid = 0;
 
     char * start_cmd = 0;
@@ -247,7 +248,7 @@ int main(int argc, char ** argv)
             sprintf(cfgfile, "%s-%s", SERVER_APP_NAME, VERSION);
             ret = find_pid_by_name(cfgfile, kill_pid);
             if (ret > 0) {
-                fprintf (stdout, "**** total %d processes killed.\n", ret);
+                fprintf(stdout, "**** total %d processes killed.\n", ret);
             }
             exit(ret);
             break;
@@ -256,7 +257,7 @@ int main(int argc, char ** argv)
             sprintf(cfgfile, "%s-%s", SERVER_APP_NAME, VERSION);
             ret = find_pid_by_name(cfgfile, list_pid);
             if (ret > 0) {
-                fprintf (stdout, "**** total %d processes found.\n", ret);
+                fprintf(stdout, "**** total %d processes found.\n", ret);
             }
             exit(ret);
             break;
@@ -314,12 +315,12 @@ int main(int argc, char ** argv)
     }
 
     if (signal(SIGCHLD, sig_chld) == SIG_ERR) {
-        LOGGER_FATAL("signal(SIGCHLD) failed: %s\n", strerror(errno));
+        LOGGER_FATAL("signal(SIGCHLD) failed: %s", strerror(errno));
         exit(-1);
     }
 
     if (signal(SIGINT, sig_int) == SIG_ERR) {
-        LOGGER_FATAL("signal(SIGINT) failed: %s\n", strerror(errno));
+        LOGGER_FATAL("signal(SIGINT) failed: %s", strerror(errno));
         exit(-1);
     }
 
@@ -337,7 +338,7 @@ int main(int argc, char ** argv)
 
     ret = server_conf_create(cfgfile, &server);
     if (ret != 0) {
-        LOGGER_FATAL("server_conf_create() failed: %d\n", ret);
+        LOGGER_FATAL("server_conf_create() failed: %d", ret);
         goto APP_EXIT_ERROR;
     }
 
@@ -346,7 +347,7 @@ int main(int argc, char ** argv)
     /* create socket for incoming connections */
     listenfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (listenfd == ERROR_SOCKET) {
-        LOGGER_FATAL("socket error(%d): %s\n", errno, strerror(errno));
+        LOGGER_FATAL("socket error(%d): %s", errno, strerror(errno));
         goto APP_EXIT_ERROR;
     }
 
@@ -354,7 +355,7 @@ int main(int argc, char ** argv)
         int opt = 1;
         ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
         if (ret) {
-            LOGGER_FATAL("setsockopt error(%d): %s\n", errno, strerror(errno));
+            LOGGER_FATAL("setsockopt error(%d): %s", errno, strerror(errno));
             goto APP_EXIT_ERROR;
         }
     } while (0);
@@ -368,36 +369,72 @@ int main(int argc, char ** argv)
     /* bind to the srvaddr address */
     ret = bind(listenfd, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
     if (ret == ERROR_SOCKET) {
-        LOGGER_FATAL("bind() failed: %s\n", strerror(errno));
+        LOGGER_FATAL("bind() failed: %s", strerror(errno));
         goto APP_EXIT_ERROR;
     }
 
     /* MUST set recv and send timeout before listen */
     ret = setsocktimeo(listenfd, 6, 6);
     if (ret != SUCCESS) {
-        LOGGER_FATAL("setsocktimeo() failed: %s\n", strerror(errno));
+        LOGGER_FATAL("setsocktimeo() failed: %s", strerror(errno));
         goto APP_EXIT_ERROR;
     }
 
     /* nodelay=1 disable Nagle, use TCP_CORK to enable Nagle */
     if (setsockopt(listenfd, IPPROTO_TCP, TCP_NODELAY, &server->nodelay, sizeof(server->nodelay))) {
-        LOGGER_FATAL("setsockopt TCP_NODELAY error(%d): %s\n", errno, strerror(errno));
+        LOGGER_FATAL("setsockopt TCP_NODELAY error(%d): %s", errno, strerror(errno));
         goto APP_EXIT_ERROR;
     }
 
     /* Mark the socket so it will listen for incoming connections */
     ret = listen(listenfd, server->backlog);
     if (ret == ERROR_SOCKET) {
-        LOGGER_FATAL("listen() failed: %s\n", strerror(errno));
+        LOGGER_FATAL("listen() failed: %s", strerror(errno));
         goto APP_EXIT_ERROR;
     }
 
     /* run forever to wait client connections reached */
-    LOGGER_INFO("%s-%s waiting for clients...\n", SERVER_APP_NAME, VERSION);
+    LOGGER_INFO("%s-%s waiting clients...", SERVER_APP_NAME, VERSION);
+    printf("* %s-%s waiting clients...\n", SERVER_APP_NAME, VERSION);
 
-    // for ( ; ; )  {
-        /* TODO: */
-    //}
+    for ( ; ; )  {
+        clilen = sizeof(cliaddr);
+        
+        /* server blocks in the call to accept, waiting for
+         *   a client connection to complete.
+         */
+
+        if ((connfd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen)) < 0) {
+            if (errno == EAGAIN) {
+                /* Resource temporarily unavailable */
+                LOGGER_TRACE("accept() returns: [errno:%d] %s", errno, strerror(errno));
+                continue;
+            } else if (errno == EINTR) {
+                /* Interrupted system call */
+                LOGGER_TRACE("accept() returns: [errno:%d] %s", errno, strerror(errno));
+                continue;
+            } else {
+                LOGGER_ERROR("accept() failed: [errno:%d] %s", errno, strerror(errno));
+                break;
+            }
+        }
+
+        if (SUCCESS != server_conf_setsocketopt(connfd, server)) {
+            LOGGER_FATAL("should never run to this");
+            break;
+        }
+
+        /* show connecting client ip and port */
+        LOGGER_INFO("connecting client: %s:%d", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
+
+        /**
+         * authenticate client and create session if passed
+         */
+        
+        num_childs++;
+        
+
+    }
 
     /* normally exit */
     server_conf_free(&server);

@@ -5,8 +5,10 @@
 * Last Updated: 2016-07-06
 */
 #include "server_conf.h"
+#include "regdb.h"
 
 #include "../mem.h"
+
 
 static const char * forbiden_prefixs[] = {
     "/bin/",
@@ -44,6 +46,8 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
     server_conf_t * p = 0;
     mxml_node_t *tree = 0;
     FILE *fp = 0;
+
+    *ppOut = 0;
 
     do {
         mxml_node_t *root;
@@ -111,28 +115,59 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
             CHECK_NODE_ERR(subnode, -11)
 
             if (mxmlGetText(subnode, 0)) {
+                char *psz;
+                const char ** ppre;
+
                 strncpy(p->pathprefix, mxmlGetText(subnode, 0), sizeof(p->pathprefix));
                 p->pathprefix[FSYNC_PATHPREFIX_LEN] = 0;
 
-                const char ** ppre = forbiden_prefixs;
+                /* check pathprefix */
+                if (p->pathprefix[0] != '/' || p->pathprefix[1] == '/' || p->pathprefix[1] == 32) {
+                    /* illegal path */
+                    err = -12;
+                    goto ERROR_RET;
+                }
+
+                /* truncate end path separator char */
+                do {
+                    psz = strrchr(p->pathprefix, '/');
+                    if (*++psz == 0) {
+                        *psz = 0;
+                    }
+                } while(*psz == 0);
+
+                if (strlen(p->pathprefix) < 8) {
+                    /* pathprefix is too short */
+                    err = -13;
+                    goto ERROR_RET;
+                }
+
+                ppre = forbiden_prefixs;
                 while (*ppre) {
                     if (strstr(p->pathprefix, *ppre)) {
-                        err = -12;
+                        /* forbiden prefix */
+                        err = -14;
                         goto ERROR_RET;
                     }
                     ppre++;
+                }
+
+                if (0 != access(p->pathprefix, R_OK|W_OK)) {
+                    err = -15;
+                    LOGGER_ERROR("access() failed: [errno:%d] %s - '%s'", errno, strerror(errno), p->pathprefix);
+                    goto ERROR_RET;
                 }
             }
 
             /* TODO: */
             node = mxmlFindElement(node, node, "backend", 0, 0, MXML_DESCEND);
-            CHECK_NODE_ERR(node, -13)
+            CHECK_NODE_ERR(node, -16)
             
             subnode = mxmlFindElement(node, node, "maxretry", 0, 0, MXML_DESCEND);
-            CHECK_NODE_ERR(subnode, -14)
+            CHECK_NODE_ERR(subnode, -17)
             
             subnode = mxmlFindElement(node, node, "interval", 0, 0, MXML_DESCEND);
-            CHECK_NODE_ERR(subnode, -15)
+            CHECK_NODE_ERR(subnode, -18)
         } while(0);
 
         /* connection */
@@ -227,22 +262,22 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
             node = mxmlFindElement(root, root, "bufsize", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -34)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -35)
-            p->bufsize = atoi(mxmlGetText(node, 0));
+            p->bufsize = byte_factor * atoi(mxmlGetText(node, 0));
             
             node = mxmlFindElement(root, root, "timeout", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -36)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -37)
-            p->timeout = atoi(mxmlGetText(node, 0));
+            p->timeout = second_factor * atoi(mxmlGetText(node, 0));
             
             node = mxmlFindElement(root, root, "keepinterval", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -38)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -39)
-            p->keepinterval = atoi(mxmlGetText(node, 0));
+            p->keepinterval = second_factor * atoi(mxmlGetText(node, 0));
 
             node = mxmlFindElement(root, root, "keepidle", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -40)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -41)
-            p->keepidle = atoi(mxmlGetText(node, 0));
+            p->keepidle = second_factor * atoi(mxmlGetText(node, 0));
             
             node = mxmlFindElement(root, root, "keepcount", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -42)
@@ -268,13 +303,21 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
             
                     MxmlNodeGetStringAttr(subnode, "md5sum",
                         p->clientpkg_md5sum, sizeof(p->clientpkg_md5sum));
-                    p->clientpkg_md5sum[FSYNC_MD5SUM_LEN] = 0;
+                    p->clientpkg_md5sum[MD5SUM_LEN] = 0;
 
                     strncpy(p->clientpkg, mxmlGetText(subnode, 0), FSYNC_PKGNAME_LEN);
                     p->clientpkg[FSYNC_PKGNAME_LEN] = 0;
                 }
             }
         } while(0);
+
+        /**
+         * open or create regdb
+         */
+        if (SUCCESS != regdb_open(p->pathprefix, &p->regdb)) {
+            err = -60;
+            goto ERROR_RET;
+        }
 
         /* load config xml completed */
         mxmlDelete(tree);
@@ -293,9 +336,39 @@ ERROR_RET:
 }
 
 
-void server_conf_free (server_conf_t ** srvconf)
+void server_conf_free (server_conf_t **server)
 {
-    mem_free((void**) srvconf);
+    server_conf_t *p = *server;
+    if (p) {
+        regdb_close(&(p->regdb));
+        mem_free((void**) server);
+    }
+}
+
+
+int server_conf_setsocketopt (int sockfd, const server_conf_t * srvconf)
+{
+    int nodelay = srvconf->nodelay;
+
+    /* set timeouts on current socket connection */
+    if (SUCCESS != setsocktimeo(sockfd, srvconf->timeout, srvconf->timeout)) {
+        LOGGER_ERROR("setsocktimeo() failed: [errno:%d] %s", errno, strerror(errno));
+        return ERROR;
+    }
+
+    /* set keepalive for current socket connection */
+    if (1 != setsockalive(sockfd, srvconf->keepidle, srvconf->keepinterval, srvconf->keepcount)) {
+        LOGGER_ERROR("setsockalive() failed: [errno:%d] %s", errno, strerror(errno));
+        return ERROR;
+    }
+
+    /* nodelay=1 disable Nagle, use TCP_CORK to enable Nagle */
+    if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay))) {
+        LOGGER_ERROR("setsockopt() failed: [errno:%d] %s", errno, strerror(errno));
+        return ERROR;
+    }
+
+    return SUCCESS;
 }
 
 
@@ -304,6 +377,7 @@ void server_conf_print (server_conf_t * srvconf)
     printf("\tver='%s'\n", srvconf->ver);
     printf("\tmagic='%s'\n", srvconf->magic);
     printf("\tpathprefix='%s'\n", srvconf->pathprefix);
+    printf("\tregdb='%s/.regdb'\n", srvconf->pathprefix);
 
     if (srvconf->iptable_whitelist) {
         printf("\twhitelist='%s'\n", srvconf->iptable_whitelist);
@@ -312,17 +386,17 @@ void server_conf_print (server_conf_t * srvconf)
         printf("\tblacklist='%s'\n", srvconf->iptable_blacklist);
     }
     
-    printf("\tbacklog='%d'\n", srvconf->backlog);
-    printf("\tport='%d'\n", srvconf->port);
-    printf("\tmaxclients='%d'\n", srvconf->maxclients);
-    printf("\tbufsize='%d'\n", srvconf->bufsize);
-    printf("\ttimeout='%d'\n", srvconf->timeout);
-    printf("\tkeepinterval='%d'\n", srvconf->keepinterval);
-    printf("\tkeepidle='%d'\n", srvconf->keepidle);
-    printf("\tkeepcount='%d'\n", srvconf->keepcount);
-    printf("\tnodelay='%d'\n", srvconf->nodelay);
+    printf("\tbacklog=%d\n", srvconf->backlog);
+    printf("\tport=%d\n", srvconf->port);
+    printf("\tmaxclients=%d\n", srvconf->maxclients);
+    printf("\tbufsize=%d bytes\n", srvconf->bufsize);
+    printf("\ttimeout=%d seconds\n", srvconf->timeout);
+    printf("\tkeepinterval=%d seconds\n", srvconf->keepinterval);
+    printf("\tkeepidle=%d seconds\n", srvconf->keepidle);
+    printf("\tkeepcount=%d\n", srvconf->keepcount);
+    printf("\tnodelay=%d\n", srvconf->nodelay);
 
-    printf("\tautoupdate='%d'\n", srvconf->autoupdate);
+    printf("\tautoupdate=%d\n", srvconf->autoupdate);
     if (srvconf->autoupdate) {
         printf("\tclientpkg='%s'\n", srvconf->clientpkg);
         printf("\tmd5sum='%s'\n", srvconf->clientpkg_md5sum);

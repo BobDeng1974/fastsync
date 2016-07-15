@@ -19,11 +19,19 @@
 
 #include "./common/byteorder.h"
 
-#define FSYNC_MAGIC_LEN               4
-#define FSYNC_PATHPREFIX_LEN        255
-#define FSYNC_DEFAULT_BACKLOG        16
-#define FSYNC_MD5SUM_LEN             32
-#define FSYNC_PKGNAME_LEN            60
+/**
+* ipv4: xxx.xxx.xxx.xxx (maxlen=15)
+* ipv6: xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx (maxlen=39)
+* mac addr: xx-xx-xx-xx-xx-xx (fixlen=17)
+* datetime: YYYY-mm-dd HH:MM:SS (fixlen=19)
+* md5: a967bcb89d5b3b9f959e0a7c39a03d81 (fixlen=32)
+*/
+#define IPV4_MAXLEN     15
+#define IPV6_MAXLEN     39
+#define MACADDR_LEN     17
+#define DATETIME_LEN    19
+#define MD5SUM_LEN      32
+
 
 /**
 * trim specified character in given string
