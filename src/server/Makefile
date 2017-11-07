@@ -44,6 +44,7 @@ session.o: session.c
 clean:
 	-rm -f $(binfilename)
 	-rm -f session.o
+	-rm -f server_conf.o
 
 check: all
 	@echo "**** ALL TESTS PASSED ****"
@@ -51,7 +52,7 @@ check: all
 install:
 	install -d $(prefix)/$(package)/conf
 	install -m 0755 $(binfilename) $(prefix)/$(package)/$(binfilename)-$(version)
-	install -m 0755 ../../conf/server.xml $(prefix)/$(package)/conf
+	install -m 0755 ../../conf/server-cfg.xml $(prefix)/$(package)/conf
 	install -m 0755 ../../conf/log4crc $(prefix)/$(package)/conf
 	ln -s -f $(prefix)/$(package)/$(binfilename)-$(version) $(prefix)/$(package)/$(binfilename)
 

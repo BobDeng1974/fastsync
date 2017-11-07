@@ -36,7 +36,7 @@ int getmac_init (getmac_info_t * mi, const char *ipaddr, unsigned short port, ch
 
     if (fd == -1) {
         err->errcode = errno;
-        snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "socket() error (%d): %s", strerror(errno));
+        snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "socket() error (%d): %s", errno, strerror(errno));
         return GETMAC_ERROR;
     }
 
@@ -46,7 +46,7 @@ int getmac_init (getmac_info_t * mi, const char *ipaddr, unsigned short port, ch
 
     if (ioctl (fd, SIOCGIFCONF, (char *) &ifc)) {
         err->errcode = errno;
-        snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl() error (%d): %s", strerror(errno));
+        snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl() error (%d): %s", errno, strerror(errno));
         close (fd);
         return GETMAC_ERROR;
     }
@@ -71,14 +71,14 @@ int getmac_attr (getmac_info_t * mi, int i, int attr, void * value, getmac_error
     if (! mi->buf[i].ifr_name[0]) {
         if (ioctl (mi->fd, SIOCGIFFLAGS, (char *) & mi->buf[i])) {
             err->errcode = errno;
-            snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGIFFLAGS) error (%d): %s", strerror(errno));
+            snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGIFFLAGS) error (%d): %s", errno, strerror(errno));
             return GETMAC_ERROR;
         }
 
 
         if (ioctl (mi->fd, SIOCGIFADDR, (char *) & mi->buf[i])) {
             err->errcode = errno;
-            snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGIFADDR) error (%d): %s", strerror(errno));
+            snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGIFADDR) error (%d): %s", errno, strerror(errno));
             return GETMAC_ERROR;
         }
 
@@ -91,7 +91,7 @@ int getmac_attr (getmac_info_t * mi, int i, int attr, void * value, getmac_error
 
             if ((ioctl (mi->fd, SIOCGARP, (char *) & mi->arp))) {
                 err->errcode = errno;
-                snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGARP) error (%d): %s", strerror(errno));
+                snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGARP) error (%d): %s", errno, strerror(errno));
                 return GETMAC_ERROR;
             }
         } while (0);
@@ -101,7 +101,7 @@ int getmac_attr (getmac_info_t * mi, int i, int attr, void * value, getmac_error
             /* get HW ADDRESS of the net card */
             if (ioctl (mi->fd, SIOCGENADDR, (char *) & buf[i])) {
                 err->errcode = errno;
-                snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGENADDR) error (%d): %s", strerror(errno));
+                snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGENADDR) error (%d): %s", errno, strerror(errno));
                 return GETMAC_ERROR;
             }
         } while (0);
@@ -109,7 +109,7 @@ int getmac_attr (getmac_info_t * mi, int i, int attr, void * value, getmac_error
         do {
             if (ioctl (mi->fd, SIOCGIFHWADDR, (char *) & mi->buf[i])) {
                 err->errcode = errno;
-                snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGIFHWADDR) error (%d): %s", strerror(errno));
+                snprintf (err->errmsg, GETMAC_MAX_MSGLEN, "ioctl(SIOCGIFHWADDR) error (%d): %s", errno, strerror(errno));
                 return GETMAC_ERROR;
             }
         } while (0);

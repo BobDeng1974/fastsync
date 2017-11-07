@@ -18,7 +18,7 @@
             info - used in release stage
             debug - used in beta test
             trace - used only in devel
-			unknown - show all details
+            unknown - show all details
     -->
 
     <config>
@@ -28,15 +28,16 @@
     </config>
 
     <!-- fastsync-client category -->
-    <category
-        name="fastsync-client"
-        priority="trace"
-        appender="fastsync-client-appender" />
+    <!-- The following line would be updated by command. DO NOT REVISED IT BY HAND. -->
+    <category name="fastsync-client" priority="trace" appender="stdout" />
 
-    <appender
-        name="fastsync-client-appender"
+    <!--
+      MUST MAKE SURE:
+        $ mkdir /var/log/fastsync-client
+        $ sudo chown user:user /var/log/fastsync-client
+    -->
+    <appender name="fastsync-client-appender" logdir="/var/log/fastsync-client/"
         type="rollingfile"
-        logdir="/var/log/fastsync-client/"
         prefix="client.log"
         layout="dated_local"
         rollingpolicy="fastsync-client-policy" />
@@ -48,20 +49,16 @@
         maxnum="10" />
 
     <!-- fastsync-server category -->
-    <category
-        name="fastsync-server"
-        priority="trace"
-        appender="fastsync-server-appender" />
+    <!-- The following line would be updated by command. DO NOT REVISED IT BY HAND. -->
+    <category name="fastsync-server" priority="trace" appender="fastsync-server-appender" />
 
     <!--
       MUST MAKE SURE:
         $ mkdir /var/log/fastsync-server
         $ sudo chown user:user /var/log/fastsync-server
     -->
-    <appender
-        name="fastsync-server-appender"
+    <appender name="fastsync-server-appender" logdir="/var/log/fastsync-server"
         type="rollingfile"
-        logdir="/var/log/fastsync-server"
         prefix="server.log"
         layout="dated_local"
         rollingpolicy="fastsync-server-policy" />

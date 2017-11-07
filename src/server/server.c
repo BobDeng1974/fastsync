@@ -2,11 +2,9 @@
 * server.c
 *
 * Init Created: 2016-07-01
-* Last Updated: 2016-07-04
+* Last Updated: 2017-01-06
 */
 #include "server.h"
-
-static char VERSION[] = "0.0.1";
 
 
 typedef void sigfunc(int);
@@ -146,25 +144,12 @@ void pr_cpu_time(void)
 }
 
 
-void print_info (const char * cfgfile, const char * log4crc)
-{
-    printf ("\n***************************************************************");  
-    printf ("\n* %s-%s", SERVER_APP_NAME, VERSION);
-    printf ("\n* Build: %s %s", __DATE__, __TIME__);
-    printf ("\n* Copyright (C) 2016 pepstack.com");
-    printf ("\n* Author: master");
-    printf ("\n***************************************************************\n");
-    printf ("\n* CONFIG_XML=%s", cfgfile);
-    printf ("\n* %s/log4crc\n", log4crc);
-}
-
-
 void print_usage (const char * prog_name)
 {
     fprintf (stdout, "\tUsage: %s [options]\n", prog_name);
     fprintf (stdout, "\toptions:\n"
                   "\t\t-d, --daemon              run as daemon process\n"
-                  "\t\t-f, --config=<server.xml> set path/to/server.xml'\n"
+                  "\t\t-f, --config=<server-cfg.xml>  set path/to/server-cfg.xml'\n"
                   "\t\t-h, --help                display help messages\n"
                   "\t\t-k, --kill                kill all fastsync-server processes\n"
                   "\t\t-l, --list                list of pids for fastsync-server process\n"
@@ -181,7 +166,7 @@ void print_usage (const char * prog_name)
 */
 int main(int argc, char ** argv)
 {
-    int ret, connfd;
+    int len, ret, connfd;
 
     pid_t   childpid;
     socklen_t clilen;
@@ -205,26 +190,22 @@ int main(int argc, char ** argv)
 
     int sessionid = 0;
 
-    char * start_cmd = 0;
     time_t start_time = time(0);
 
-    /* parse arguments */
+    /* command arguments */
     const struct option lopts[] = {
         {"help", no_argument, 0, 'h'},
         {"daemon", no_argument, 0, 'd'},
         {"config", optional_argument, 0, 'f'},
         {"kill", no_argument, 0, 'k'},
         {"list", no_argument, 0, 'l'},
-        {"VERSION", no_argument, 0, 'v'},
+        {"version", no_argument, 0, 'v'},
         {0, 0, 0, 0}
     };
 
-    /* get default server.xml path */
-    getpwd(cfgfile, sizeof(cfgfile));
-    cfgfile[MAX_FILENAME_LEN] = 0;
-    strcat(cfgfile, "conf/server.xml");
-    cfgfile[MAX_FILENAME_LEN] = 0;
+    set_default_config(cfgfile, sizeof(cfgfile), log4crc, sizeof(log4crc));
 
+    /* parse command arguments */
     while ((ret = getopt_long(argc, argv, "dhklf:v", lopts, 0)) != EOF) {
         switch (ret) {
         case 'd':
@@ -245,7 +226,7 @@ int main(int argc, char ** argv)
             break;
 
         case 'k':
-            sprintf(cfgfile, "%s-%s", SERVER_APP_NAME, VERSION);
+            sprintf(cfgfile, "%s-%s", FSYNC_SERVER_APP, VERSION);
             ret = find_pid_by_name(cfgfile, kill_pid);
             if (ret > 0) {
                 fprintf(stdout, "**** total %d processes killed.\n", ret);
@@ -254,7 +235,7 @@ int main(int argc, char ** argv)
             break;
 
         case 'l':
-            sprintf(cfgfile, "%s-%s", SERVER_APP_NAME, VERSION);
+            sprintf(cfgfile, "%s-%s", FSYNC_SERVER_APP, VERSION);
             ret = find_pid_by_name(cfgfile, list_pid);
             if (ret > 0) {
                 fprintf(stdout, "**** total %d processes found.\n", ret);
@@ -263,26 +244,12 @@ int main(int argc, char ** argv)
             break;
 
         case 'v':
-            printf("%s-%s, build:%s %s\n\n", SERVER_APP_NAME, VERSION, __DATE__, __TIME__);
+            printf("%s-%s, build:%s %s\n\n", FSYNC_SERVER_APP, VERSION, __DATE__, __TIME__);
             exit(0);
         }
     }
 
-    do {
-        char *p = strrchr(cfgfile, '/');
-        *p = 0;
-
-        snprintf(log4crc, MAX_FILENAME_LEN, "LOG4C_RCPATH=%s", cfgfile);
-        *p = '/';
-
-        log4crc[MAX_FILENAME_LEN] = 0;
-
-        if (0 != putenv(log4crc)) {
-            perror(log4crc);
-        }
-    } while (0);
-
-    print_info(cfgfile, log4crc);
+    print_info(cfgfile, log4crc, start_time);
 
     LOGGER_INIT();
 
@@ -293,10 +260,10 @@ int main(int argc, char ** argv)
         "\n\tconfig: %s"
         "\n\tpid: %d"
         "\n\tstart: %s\n",
-        SERVER_APP_NAME, VERSION,
+        FSYNC_SERVER_APP, VERSION,
         __DATE__, __TIME__, cfgfile, getpid(), ctime(&start_time));
 
-    if (check_file_error(cfgfile) != 0) {
+    if (check_file_error(cfgfile, R_OK) != 0) {
         printf("invalid config file: %s\n", cfgfile);
         exit(-1);
     }
@@ -310,7 +277,7 @@ int main(int argc, char ** argv)
             exit(errno);
         } else {
             LOGGER_INFO("%s-%s is running as daemon process(%d)...",
-                SERVER_APP_NAME, VERSION, getpid());
+                FSYNC_SERVER_APP, VERSION, getpid());
         }
     }
 
@@ -364,7 +331,7 @@ int main(int argc, char ** argv)
     bzero(&srvaddr, sizeof(srvaddr));
     srvaddr.sin_family = AF_INET;
     srvaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    srvaddr.sin_port = htons(4916);
+    srvaddr.sin_port = htons(DEFAULT_PORT);
 
     /* bind to the srvaddr address */
     ret = bind(listenfd, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
@@ -394,12 +361,12 @@ int main(int argc, char ** argv)
     }
 
     /* run forever to wait client connections reached */
-    LOGGER_INFO("%s-%s waiting clients...", SERVER_APP_NAME, VERSION);
-    printf("* %s-%s waiting clients...\n", SERVER_APP_NAME, VERSION);
+    LOGGER_INFO("%s-%s waiting clients...", FSYNC_SERVER_APP, VERSION);
+    printf("* %s-%s waiting clients...\n", FSYNC_SERVER_APP, VERSION);
 
     for ( ; ; )  {
         clilen = sizeof(cliaddr);
-        
+
         /* server blocks in the call to accept, waiting for
          *   a client connection to complete.
          */
@@ -430,19 +397,19 @@ int main(int argc, char ** argv)
         /**
          * authenticate client and create session if passed
          */
-        
+
         num_childs++;
-        
+
 
     }
 
     /* normally exit */
     server_conf_free(&server);
 
-    LOGGER_INFO("%s-%s exit(0).", SERVER_APP_NAME, VERSION);
+    LOGGER_INFO("%s-%s exit(0).", FSYNC_SERVER_APP, VERSION);
     LOGGER_FINI();
 
-    printf("\n**** %s-%s exit(0).\n\n", SERVER_APP_NAME, VERSION);
+    printf("\n**** %s-%s exit(0).\n\n", FSYNC_SERVER_APP, VERSION);
     exit(0);
 
 APP_EXIT_ERROR:
@@ -453,9 +420,9 @@ APP_EXIT_ERROR:
         close(listenfd);
     }
 
-    LOGGER_FATAL("%s-%s exit(-1).", SERVER_APP_NAME, VERSION);
+    LOGGER_FATAL("%s-%s exit(-1).", FSYNC_SERVER_APP, VERSION);
     LOGGER_FINI();
 
-    printf("\n**** %s-%s exit(-1).\n\n", SERVER_APP_NAME, VERSION);
+    printf("\n**** %s-%s exit(-1).\n\n", FSYNC_SERVER_APP, VERSION);
     exit(-1);
 }

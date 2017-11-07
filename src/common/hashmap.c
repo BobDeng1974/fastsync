@@ -4,7 +4,7 @@
  *
  * Author: master@pepstack.com
  *
- * Last Updated: 2016-06-09
+ * Last Updated: 2016-07-20
  */
 #include "hashmap.h"
 
@@ -14,6 +14,20 @@
 
 #define HMAP_INITIAL_SIZE (256)
 #define HMAP_CHAIN_LENGTH (8)
+
+/**
+* The compiler tries to warn you that you lose bits when casting from void *
+*   to int. It doesn't know that the void * is actually an int cast, so the
+*   lost bits are meaningless.
+*
+* A double cast would solve this (int)(uintptr_t)t->key. It first casts void *
+*   to uintptr_t (same size, no warning), then uintptr_t to int (number to
+*   number, no warning). Need to include <stdint.h> to have the uintptr_t type
+*   (an integral type with the same size as a pointer).
+*/
+#define pv_cast_to_int(pv)    ((int) (uintptr_t) (void*) (pv))
+#define int_cast_to_pv(ival)    ((void*) (uintptr_t) (int) (ival))
+
 
 typedef enum _use_state {
     unused_0 = 0,
@@ -145,7 +159,7 @@ int get_int_hash(void * l, int hashsize)
 
         return (int) ((hikey + lokey) % hashsize);
     } else {
-        uint32_t key = (uint32_t) l;
+        uint32_t key = (uint32_t) pv_cast_to_int(l);
 
         Jenkins_Mix_Key(key);
 
@@ -159,7 +173,7 @@ int get_int_hash(void * l, int hashsize)
  */
 int get_string_hash(const char* s, int slen, int hashsize)
 {
-    return get_int_hash((void*) crc32(s, slen), hashsize);
+    return get_int_hash((void*) int_cast_to_pv(crc32(s, slen)), hashsize);
 }
 
 
@@ -274,7 +288,11 @@ char* ptr_addr_to_key(void_ptr ptr, char* key)
     #pragma warning(disable : 4996)
 #endif
 
-    sprintf(key, "%08x",  (int64_t) (int64_t *) ptr);
+#ifdef _MSC_VER
+    sprintf(key, "%08I64x",  (int64_t) (int64_t *) ptr);
+#else
+    sprintf(key, "%08llx",  (long long unsigned int) (int64_t *) ptr);
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)

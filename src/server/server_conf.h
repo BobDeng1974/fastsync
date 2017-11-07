@@ -11,29 +11,11 @@
 extern "C" {
 #endif
 
-#define SERVER_APP_NAME  "fastsync-server"
+#include "../fsyncdef.h"
 
 #define LOGGER_COLOR_OUTPUT
-#define LOGGER_CATEGORY_NAME  SERVER_APP_NAME
+#define LOGGER_CATEGORY_NAME  FSYNC_SERVER_APP
 #include "../logger.h"
-
-#include "../msgs.h"
-#include "../heads.h"
-#include "../sockapi.h"
-
-#include "../xmlconf.h"
-
-#define FSYNC_MAGIC_LEN               4
-#define FSYNC_PATHPREFIX_LEN        255
-#define FSYNC_DEFAULT_BACKLOG        16
-#define FSYNC_PKGNAME_LEN            60
-
-#ifndef MAX_FILENAME_LEN
-#define MAX_FILENAME_LEN 255
-#endif
-
-#define SUCCESS     0
-#define ERROR     (-1)
 
 
 /**
@@ -45,8 +27,8 @@ typedef struct server_conf_t
     char ver[10];
 
     /**
-    * authentication
-    */
+     * authentication
+     */
     char magic[FSYNC_MAGIC_LEN + 1];
     int ssl_enabled;
     char pubkey[1];

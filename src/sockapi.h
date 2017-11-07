@@ -192,12 +192,16 @@ static int recvbulky (SOCKET s, char* bulk, int len,
 }
 
 
-static SOCKET opensocket (const char *server, int port)
+static SOCKET opensocket (const char *server, int port, int timeo_sec)
 {
     SOCKET sockfd;
     struct sockaddr_in   saddr;
     struct hostent      *hp;
     unsigned int         iaddr;
+
+    struct timeval timeo = {0};
+    socklen_t len = sizeof(timeo);
+    timeo.tv_sec = timeo_sec;
 
     hp = 0;
 
@@ -217,14 +221,24 @@ static SOCKET opensocket (const char *server, int port)
     saddr.sin_port = htons ((u_short) port);
 
     /* create a new socket and attempt to connect to saddr */
-    sockfd = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);  /* PF_INET */
+    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);  /* PF_INET */
     if (sockfd == ERROR_SOCKET) {
         return ERROR_SOCKET;
     }
 
+    if (timeo_sec) {
+        if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeo, len) == -1) {
+            return ERROR_SOCKET;
+        }
+    }
+
     /* make a connection to the saddr, no matter what local port used */
-    if ( connect (sockfd, (struct sockaddr *) &saddr, sizeof(saddr)) == ERROR_SOCKET) {
-        close ( sockfd );
+    if (connect(sockfd, (struct sockaddr *) &saddr, sizeof(saddr)) == -1) {
+        if (errno == EINPROGRESS) {
+            return ERROR_SOCKET;
+        }
+
+        close(sockfd);
         return ERROR_SOCKET;
     }
 

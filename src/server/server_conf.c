@@ -2,12 +2,10 @@
 * server_conf.c
 *
 * Init Created: 2016-07-06
-* Last Updated: 2016-07-06
+* Last Updated: 2017-01-06
 */
 #include "server_conf.h"
 #include "regdb.h"
-
-#include "../mem.h"
 
 
 static const char * forbiden_prefixs[] = {
@@ -67,12 +65,12 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
         root = mxmlFindElement(tree, tree, "fastsync-server", 0, 0, MXML_DESCEND);
         CHECK_NODE_ERR(root, -3)
 
-        if (safe_stricmp(mxmlElementGetAttr(root, "xmlns"), "http://www.pepstack.com")) {
+        if (safe_stricmp(mxmlElementGetAttr(root, "xmlns"), "http://pepstack.com")) {
             err = -4;
             goto ERROR_RET;
         }
 
-        p = mem_alloc(1, sizeof(server_conf_t));        
+        p = mem_alloc(1, sizeof(server_conf_t));
         MxmlNodeGetStringAttr(root, "ver", p->ver, sizeof(p->ver));
 
         /* authentication */
@@ -92,7 +90,7 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
 
             node = mxmlFindElement(node, node, "ssl", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -6)
-            
+
             MxmlNodeGetIntegerAttr(node, "enabled", &p->ssl_enabled);
 
             if (p->ssl_enabled) {
@@ -162,10 +160,10 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
             /* TODO: */
             node = mxmlFindElement(node, node, "backend", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -16)
-            
+
             subnode = mxmlFindElement(node, node, "maxretry", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(subnode, -17)
-            
+
             subnode = mxmlFindElement(node, node, "interval", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(subnode, -18)
         } while(0);
@@ -198,7 +196,7 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
                     goto ERROR_RET;
                 }
             }
-           
+
             if (MxmlNodeGetStringAttr(node, "sizeunit", tmpbuf, sizeof(tmpbuf))) {
                 if (
                     ! safe_stricmp(tmpbuf, "megabyte") ||
@@ -258,17 +256,17 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
             CHECK_NODE_ERR(node, -32)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -33)
             p->maxclients = atoi(mxmlGetText(node, 0));
-            
+
             node = mxmlFindElement(root, root, "bufsize", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -34)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -35)
             p->bufsize = byte_factor * atoi(mxmlGetText(node, 0));
-            
+
             node = mxmlFindElement(root, root, "timeout", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -36)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -37)
             p->timeout = second_factor * atoi(mxmlGetText(node, 0));
-            
+
             node = mxmlFindElement(root, root, "keepinterval", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -38)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -39)
@@ -278,7 +276,7 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
             CHECK_NODE_ERR(node, -40)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -41)
             p->keepidle = second_factor * atoi(mxmlGetText(node, 0));
-            
+
             node = mxmlFindElement(root, root, "keepcount", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -42)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -43)
@@ -287,7 +285,8 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
             node = mxmlFindElement(root, root, "nodelay", 0, 0, MXML_DESCEND);
             CHECK_NODE_ERR(node, -44)
             CHECK_NODE_ERR(mxmlGetText(node, 0), -45)
-            p->nodelay = bool_to_int_0or1(mxmlGetText(node, 0));
+
+            parse_bool_asint(mxmlGetText(node, 0), &p->nodelay);
         } while(0);
 
         /* autoupdate */
@@ -300,7 +299,7 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
 
                     subnode = mxmlFindElement(node, node, "clientpkg", 0, 0, MXML_DESCEND);
                     CHECK_NODE_ERR(subnode, -50)
-            
+
                     MxmlNodeGetStringAttr(subnode, "md5sum",
                         p->clientpkg_md5sum, sizeof(p->clientpkg_md5sum));
                     p->clientpkg_md5sum[MD5SUM_LEN] = 0;
@@ -330,8 +329,8 @@ int server_conf_create(const char * cfgfile, server_conf_t **ppOut)
 ERROR_RET:
     mem_free((void**) &p);
     mxmlDelete(tree);
-    fclose(fp);    
-    
+    fclose(fp);
+
     return err;
 }
 
@@ -385,7 +384,7 @@ void server_conf_print (server_conf_t * srvconf)
     if (srvconf->iptable_blacklist) {
         printf("\tblacklist='%s'\n", srvconf->iptable_blacklist);
     }
-    
+
     printf("\tbacklog=%d\n", srvconf->backlog);
     printf("\tport=%d\n", srvconf->port);
     printf("\tmaxclients=%d\n", srvconf->maxclients);

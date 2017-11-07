@@ -1,13 +1,16 @@
 # Makefile for fastsync
-# 2016-07-01
+#
 #   master@pepstack.com
 #
-###########################################################
+# 2016-07-01: init created
+# 2017-01-14: last updated
+########################################################################
 
 package = fastsync
 version = 0.0.1
+
 tarname = $(package)
-distdir = $(tarname)-$(version)
+distdir = $(tarname)-src-$(version)
 
 prefix = /usr/local
 exec_prefix = $(prefix)
@@ -26,8 +29,13 @@ COMMON_DIR = $(SRC_DIR)/common
 CLIENT_DIR = $(SRC_DIR)/client
 SERVER_DIR = $(SRC_DIR)/server
 
-all clean check install uninstall isynclog:
+all clean check install uninstall:
+	cd $(COMMON_DIR) && $(MAKE) $@
 	cd $(SERVER_DIR) && $(MAKE) $@
+	cd $(CLIENT_DIR) && $(MAKE) $@
+
+doc: Doxyfile
+	@doxygen
 
 dist: $(distdir).tar.gz
 
@@ -41,12 +49,19 @@ $(distdir): FORCE
 	mkdir -p $(distdir)/src/server
 	mkdir -p $(distdir)/conf
 	cp Makefile $(distdir)
+	cp Doxyfile $(distdir)
 	cp $(SRC_DIR)/*.h $(distdir)/src
-	cp $(COMMON_DIR)/* $(distdir)/src/common
-	cp $(CLIENT_DIR)/* $(distdir)/src/client
-	cp $(SERVER_DIR)/* $(distdir)/src/server
-	cp $(CONF_DIR)/client.xml $(distdir)/conf
-	cp $(CONF_DIR)/server.xml $(distdir)/conf
+	cp $(COMMON_DIR)/Makefile $(distdir)/src/common
+	cp $(COMMON_DIR)/*.h $(distdir)/src/common
+	cp $(COMMON_DIR)/*.c $(distdir)/src/common
+	cp $(CLIENT_DIR)/Makefile $(distdir)/src/client
+	cp $(CLIENT_DIR)/*.h $(distdir)/src/client
+	cp $(CLIENT_DIR)/*.c $(distdir)/src/client
+	cp $(SERVER_DIR)/Makefile $(distdir)/src/server
+	cp $(SERVER_DIR)/*.h $(distdir)/src/server
+	cp $(SERVER_DIR)/*.c $(distdir)/src/server
+	cp $(CONF_DIR)/client-cfg.xml $(distdir)/conf
+	cp $(CONF_DIR)/server-cfg.xml $(distdir)/conf
 	cp $(CONF_DIR)/log4crc $(distdir)/conf
 
 distcheck: $(distdir).tar.gz
@@ -68,4 +83,4 @@ FORCE:
 	-rm $(distdir).tar.gz >/dev/null 2>&1
 	-rm -rf $(distdir) >/dev/null 2>&1
 
-.PHONY: FORCE all clean check dist distcheck install uninstall
+.PHONY: FORCE all clean check dist distcheck install uninstall doc

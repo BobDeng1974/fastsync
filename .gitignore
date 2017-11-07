@@ -8,19 +8,18 @@
 *.gch
 *.pch
 
-# Libraries
+# Shared objects (inc. Windows DLLs)
 *.lib
 *.a
 *.la
 *.lo
-
-# Shared objects (inc. Windows DLLs)
 *.dll
 *.so
 *.so.*
 *.dylib
 
 # Executables
+nohup.out
 *.exe
 *.out
 *.app
@@ -31,6 +30,10 @@
 # Debug files
 *.dSYM/
 *.su
+*.log
+*.log.*
 
-#--------------
+# Generated directories
 build/
+*-doxygen/
+

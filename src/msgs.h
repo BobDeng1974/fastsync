@@ -2,7 +2,7 @@
 * msgs.h
 *
 * Init Created: 2016-07-06
-* Last Updated: 2016-07-06
+* Last Updated: 2017-01-09
 */
 #ifndef MSGS_H_INCLUDED
 #define MSGS_H_INCLUDED
@@ -33,12 +33,37 @@
 #define MD5SUM_LEN      32
 
 
+#ifndef MAX_FILENAME_LEN
+#define MAX_FILENAME_LEN            255
+#endif
+
+#define TRUE     1
+#define FALSE    0
+
+#define SUCCESS     0
+#define ERROR     (-1)
+#define EMEMORY   (-10)
+
+
 /**
-* trim specified character in given string
-*/
+ * trim specified character in given string
+ */
 static char* trim (char *s, char c)
 {
     return (*s==0)?s:(((*s!=c)?(((trim(s+1,c)-1)==s)?s:(*(trim(s+1,c)-1)=*s,*s=c,trim(s+1,c))):trim(s+1,c)));
+}
+
+
+/**
+ * trim specified characters in given string
+ */
+static char* trims (char *s, char *chrs)
+{
+    char *p = chrs;
+    while (*p != 0) {
+        s = trim(s, *p++);
+    }
+    return s;
 }
 
 
@@ -52,6 +77,35 @@ static char * strrplchr (char *s, char c, char d)
         ++p;
     }
     return s;
+}
+
+
+static char *strlwr(char *s)
+{
+    char *p;
+    p = s;
+
+    while(*p != '\0') {
+        if (*p >= 'A' && *p <= 'Z') {
+            *p = (*p) + 0x20;
+        }
+        p++;
+    }
+    return s;
+}
+
+
+static int str_in_array(const char * str, const char ** argv)
+{
+    int i = 0;
+
+    while (argv[i]) {
+        if (! strcmp(str, argv[i++])) {
+            return i;
+        }
+    }
+
+    return 0;
 }
 
 
